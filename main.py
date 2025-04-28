@@ -3,7 +3,7 @@ from telebot import types
 from dotenv import load_dotenv
 import os
 import logging
-from functions import save_user, update_user_role, get_all_admin_ids
+from functions import save_user, update_user_role, get_all_admin_ids, stay_in_quire, create_dialog
 
 
 logging.basicConfig(
@@ -19,9 +19,6 @@ if not BOT_TOKEN:
     exit(1)
 
 bot = telebot.TeleBot(os.getenv("TELEGRAM_BOT_TOKEN"))
-bot_chatting = {
-    'start': False
-}
 
 
 @bot.message_handler(commands=['start'])
@@ -43,10 +40,12 @@ def message_reply(message):
     if message.text == 'Hello!':
         markup = types.ReplyKeyboardRemove()
         bot.send_message(message.chat.id, 'Hello!', reply_markup=markup)
+
     if message.text == 'admin':
         text = 'Введи код.'
         markup = types.ReplyKeyboardRemove()
         bot.send_message(message.chat.id, text, reply_markup=markup)
+
     if message.text == '12345':
         if update_user_role(str(message.chat.id), 'admin'):
             text = 'Вы успешно зарегистрированы как админ'
@@ -58,19 +57,23 @@ def message_reply(message):
             button_admin = types.KeyboardButton("Связаться с админом")
             markup.add(button_admin)
             bot.send_message(message.chat.id, text, reply_markup=markup)
+
     if message.text == "Связаться с админом":
         admins = get_all_admin_ids()
         if len(admins) == 0:
             markup = types.ReplyKeyboardRemove()
             bot.send_message(message.chat.id, 'Технические шоколадки, попробуйте позже', reply_markup=markup)
         else:
+            stay_in_quire(str(message.chat.id))
             for id in admins:
                 text = 'С вами хотят связаться.'
                 markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
                 button_agree = types.KeyboardButton('Подтвердить')
                 markup.add(button_agree)
                 bot.send_message(id, text, reply_markup=markup)
+
     if message.text == 'Подтвердить':
+        create_dialog(message.chat.id)
         admins = get_all_admin_ids()
         for id in admins:
             if id != str(message.chat.id):
@@ -79,7 +82,6 @@ def message_reply(message):
                 bot.send_message(id, text, reply_markup=markup)
         text = '''Спасибо за вашу инициативность.
 Перенаправляю на чат с пользователем.'''
-        # bot_chatting['admin'] =
         markup = types.ReplyKeyboardRemove()
         bot.send_message(message.chat.id, text, reply_markup=markup)
 
