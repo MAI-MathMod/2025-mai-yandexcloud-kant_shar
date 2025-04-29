@@ -172,8 +172,12 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
-programs_table.md
 
 # .gitignore
 .env
 *.env
+
+# project files
+programs_table.md
+callstack.json
+users.json
