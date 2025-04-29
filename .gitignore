@@ -172,8 +172,7 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
-
-scores_table.md
+programs_table.md
 
 # .gitignore
 .env
