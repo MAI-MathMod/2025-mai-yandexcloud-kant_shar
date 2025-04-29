@@ -1,6 +1,6 @@
 import telebot
 from telebot import types
-from dotenv import load_dotenv
+from config import Config
 import os
 import logging
 from functions import save_user, update_user_role, get_all_admin_ids, stay_in_quire, create_dialog, get_vasavi
@@ -11,14 +11,13 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
-load_dotenv()
-BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-ADMIN_IDS = [int(id) for id in os.getenv("ADMIN_IDS", "").split(",") if id]
-if not BOT_TOKEN:
+config = Config(_env_file='../.env')
+ADMIN_IDS = [int(id) for id in config.admin_ids.split(",") if id]
+if not config.bot_token:
     logger.error("Не указан TELEGRAM_BOT_TOKEN в .env файле!")
     exit(1)
 
-bot = telebot.TeleBot(os.getenv("TELEGRAM_BOT_TOKEN"))
+bot = telebot.TeleBot(config.bot_token)
 
 
 @bot.message_handler(commands=['start'])

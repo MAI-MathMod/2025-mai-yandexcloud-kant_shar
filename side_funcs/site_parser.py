@@ -1,7 +1,19 @@
 import bs4, requests
+from os import getcwd
 
 
 def get_last_year_programs(url='https://priem.mai.ru/base/programs/') -> tuple[str, str]:
+    exams_converter = {
+        'M': 'Математика',
+        'Ф': 'Физика',
+        'И': 'Информатика',
+        'Б': 'Биология',
+        'Г': 'География',
+        'О': 'Обществознание',
+        'Ин': 'Иностранный язык',
+        'Ис': 'История',
+        'Р': 'Русский язык'
+    }
     page = requests.get(url)
     soup = bs4.BeautifulSoup(page.text, 'html.parser')
 
@@ -19,7 +31,10 @@ def get_last_year_programs(url='https://priem.mai.ru/base/programs/') -> tuple[s
     programs[-1]['points'] = f'{points[0]}/{points[1]}'
     places = needed_div.div.find_all('span')[7].span.text.strip().split('/')
     programs[-1]['places'] = f"{places[0]}/{places[1].replace('\n', '').replace(' ', '')}"
-    programs[-1]['subjects'] = needed_div.div.find_all('span')[3].text.strip()
+    exams = needed_div.find_all('span')[3].text.strip().split(' ')
+    programs[-1]['subjects'] = (f'{exams_converter[exams[0]]}, и {exams_converter[exams[2]]}, '
+                                f'и {exams_converter[exams[1].split('/')[0]]} или '
+                                f'{exams_converter[exams[1].split('/')[1]]}')
 
     i = 0
     for sibling in needed_div.div.next_siblings:
@@ -45,10 +60,13 @@ def get_last_year_programs(url='https://priem.mai.ru/base/programs/') -> tuple[s
                                           f'({places_paid[places_paid.rindex(number):]})')
             else:
                 programs[-1]['places'] = f"{places[0]}/{places[1].replace('\n', '').replace(' ', '')}"
-            programs[-1]['subjects'] = sibling.find_all('span')[3].text.strip()
+            exams = sibling.find_all('span')[3].text.strip().split(' ')
+            programs[-1]['subjects'] = (f'{exams_converter[exams[0]]}, и {exams_converter[exams[2]]}, '
+                                        f'и {exams_converter[exams[1].split('/')[0]]} или '
+                                        f'{exams_converter[exams[1].split('/')[1]]}')
         i += 1
 
-    table_header = (f'|Код|Наименование конкурсной группы|Кол-во мест (бюджет / платное)|Баллы (бюджет / платное)|Предметы '
+    table_header = (f'|Код|Наименование конкурсной группы|Кол-во мест (бюджет / платное)|Баллы (бюджет / платное)|Необходимые редметы '
                     f'для поступления|\n'
                     f'|:-:|:----------------------------:|:--------------------------:|:--------------------:|:---------'
                     f'-------------:|\n')
@@ -63,6 +81,5 @@ def get_last_year_programs(url='https://priem.mai.ru/base/programs/') -> tuple[s
 
 
 def generate_md_file(text: str):
-    with open('programs_table.md', 'w', encoding='utf-8') as f:
+    with open('./knowledge_base/programs_table.md', 'w', encoding='utf-8') as f:
         f.write(text)
-

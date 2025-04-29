@@ -178,6 +178,6 @@ cython_debug/
 *.env
 
 # project files
-programs_table.md
-callstack.json
-users.json
+knowledge_base/programs_table.md
+telegram_bot_data/callstack.json
+telegram_bot_data/users.json
