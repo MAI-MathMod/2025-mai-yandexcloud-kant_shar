@@ -1,4 +1,3 @@
-from pprint import pprint
 import bs4, requests
 
 
@@ -56,5 +55,3 @@ def generate_md_file(text: str):
     with open('programs_table.md', 'w', encoding='utf-8') as f:
         f.write(text)
 
-
-generate_md_file(get_last_year_programs()[0])
