@@ -3,7 +3,7 @@ from telebot import types
 from dotenv import load_dotenv
 import os
 import logging
-from functions import save_user, update_user_role, get_all_admin_ids, stay_in_quire, create_dialog
+from functions import save_user, update_user_role, get_all_admin_ids, stay_in_quire, create_dialog, get_vasavi
 
 
 logging.basicConfig(
@@ -37,53 +37,55 @@ def start_message(message):
 
 @bot.message_handler(content_types='text')
 def message_reply(message):
-    if message.text == 'Hello!':
+    visavi = get_vasavi(message.chat.id)
+    if visavi:
         markup = types.ReplyKeyboardRemove()
-        bot.send_message(message.chat.id, 'Hello!', reply_markup=markup)
+        bot.send_message(visavi, message.text, reply_markup=markup)
+    else:
 
-    if message.text == 'admin':
-        text = 'Введи код.'
-        markup = types.ReplyKeyboardRemove()
-        bot.send_message(message.chat.id, text, reply_markup=markup)
-
-    if message.text == '12345':
-        if update_user_role(str(message.chat.id), 'admin'):
-            text = 'Вы успешно зарегистрированы как админ'
+        if message.text == 'admin':
+            text = 'Введи код.'
             markup = types.ReplyKeyboardRemove()
             bot.send_message(message.chat.id, text, reply_markup=markup)
-        else:
-            text = 'Пароль верен, попробуйте позже или свяжитесь с админом'
-            markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-            button_admin = types.KeyboardButton("Связаться с админом")
-            markup.add(button_admin)
-            bot.send_message(message.chat.id, text, reply_markup=markup)
 
-    if message.text == "Связаться с админом":
-        admins = get_all_admin_ids()
-        if len(admins) == 0:
-            markup = types.ReplyKeyboardRemove()
-            bot.send_message(message.chat.id, 'Технические шоколадки, попробуйте позже', reply_markup=markup)
-        else:
-            stay_in_quire(str(message.chat.id))
-            for id in admins:
-                text = 'С вами хотят связаться.'
-                markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-                button_agree = types.KeyboardButton('Подтвердить')
-                markup.add(button_agree)
-                bot.send_message(id, text, reply_markup=markup)
-
-    if message.text == 'Подтвердить':
-        create_dialog(message.chat.id)
-        admins = get_all_admin_ids()
-        for id in admins:
-            if id != str(message.chat.id):
-                text = 'На вопрос ответил другой админ'
+        if message.text == '12345':
+            if update_user_role(message.chat.id, 'admin'):
+                text = 'Вы успешно зарегистрированы как админ'
                 markup = types.ReplyKeyboardRemove()
-                bot.send_message(id, text, reply_markup=markup)
-        text = '''Спасибо за вашу инициативность.
-Перенаправляю на чат с пользователем.'''
-        markup = types.ReplyKeyboardRemove()
-        bot.send_message(message.chat.id, text, reply_markup=markup)
+                bot.send_message(message.chat.id, text, reply_markup=markup)
+            else:
+                text = 'Пароль верен, попробуйте позже или свяжитесь с админом'
+                markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+                button_admin = types.KeyboardButton("Связаться с админом")
+                markup.add(button_admin)
+                bot.send_message(message.chat.id, text, reply_markup=markup)
+
+        if message.text == "Связаться с админом":
+            admins = get_all_admin_ids()
+            if len(admins) == 0:
+                markup = types.ReplyKeyboardRemove()
+                bot.send_message(message.chat.id, 'Технические шоколадки, попробуйте позже', reply_markup=markup)
+            else:
+                stay_in_quire(message.chat.id)
+                for id in admins:
+                    text = 'С вами хотят связаться.'
+                    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+                    button_agree = types.KeyboardButton('Подтвердить')
+                    markup.add(button_agree)
+                    bot.send_message(id, text, reply_markup=markup)
+
+        if message.text == 'Подтвердить':
+            create_dialog(message.chat.id)
+            admins = get_all_admin_ids()
+            for id in admins:
+                if id != str(message.chat.id):
+                    text = 'На вопрос ответил другой админ'
+                    markup = types.ReplyKeyboardRemove()
+                    bot.send_message(id, text, reply_markup=markup)
+            text = '''Спасибо за вашу инициативность.
+    Перенаправляю на чат с пользователем.'''
+            markup = types.ReplyKeyboardRemove()
+            bot.send_message(message.chat.id, text, reply_markup=markup)
 
 
 
