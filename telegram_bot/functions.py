@@ -189,6 +189,14 @@ def clear_assistants(assistants, user_id):
             print(e)
 
 
+
+def get_all():
+    cursor.execute('SELECT * FROM users_for_yandex')
+    result = cursor.fetchall()
+    for i in result:
+        print(i)
+
+
 with open('../telegram_bot_data/database_user.json') as file:
     file_json_data = json.load(file)
 try:
@@ -199,5 +207,6 @@ try:
         database=file_json_data['database']
     )
     cursor = connection.cursor()
+    # get_all()
 except pymysql.MySQLError as e:
     print(f"Ошибка подключения: {e}")
