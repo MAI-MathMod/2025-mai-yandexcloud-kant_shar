@@ -2,7 +2,7 @@ import telebot
 from telebot import types
 from config import Config
 import logging
-from functions import (save_user, update_user_role, get_all_admin_ids, stop_dialog,
+from functions import (save_user, update_user, get_all_admin_ids, stop_dialog,
                        stay_in_quire, create_dialog, get_visavi)
 from assistant.assistant import *
 from assistant.funcs import *
@@ -41,7 +41,7 @@ def admin_registration(message):
         markup = types.ReplyKeyboardRemove()
         bot.send_message(message.chat.id, text, reply_markup=markup)
     if message.text.split(' ')[1] == config.password:
-        update_user_role(message.chat.id, 'admin')
+        update_user(message.chat.id, 'role', 'admin')
         text = 'Вы успешно зарегестрированы как админ.'
         markup = types.ReplyKeyboardRemove()
         bot.send_message(message.chat.id, text, reply_markup=markup)

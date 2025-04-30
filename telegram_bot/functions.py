@@ -8,10 +8,10 @@ from assistant.assistant import *
 def save_user(user_id, user_nick, role = 'user'):
     try:
         user_query = """
-            INSERT INTO users_for_yandex(user_id, user_nick, role, ball, exams)
+            INSERT INTO users_for_yandex(user_id, user_nick, role, ball, exams, distribution)
             VALUES (%s, %s, %s, %s, %s)
         """
-        cursor.execute(user_query, (user_id, user_nick, role, '0', '0'))
+        cursor.execute(user_query, (user_id, user_nick, role, '0', '0', 0))
         connection.commit()
         return 'success'
 
@@ -20,7 +20,7 @@ def save_user(user_id, user_nick, role = 'user'):
         return f"Ошибка подключения: {e}"
 
 
-def update_user_role(user_id: int, new_role: str):
+def update_user(user_id, column, new_value):
     """
     Изменяет роль пользователя по его уникальному идентификатору.
     Аргументы:
@@ -30,8 +30,12 @@ def update_user_role(user_id: int, new_role: str):
         bool: True, если роль была успешно изменена, иначе False
     """
     try:
-        query = "UPDATE users_for_yandex SET role = %s WHERE user_id = %s"
-        cursor.execute(query, (new_role, str(user_id)))
+        query = f"UPDATE users_for_yandex SET `{column}` = %s WHERE user_id = %s"
+        valid_columns = ['user_id', 'user_nick', 'role',
+                         'ball', 'exams', 'distribution']
+        if column not in valid_columns:
+            return False
+        cursor.execute(query, (new_value, user_id))
         connection.commit()
         return True
     except pymysql.MySQLError as e:
