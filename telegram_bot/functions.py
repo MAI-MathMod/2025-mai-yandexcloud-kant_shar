@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 import pymysql
-from assistant.funcs import *
-from assistant.assistant import *
+# from assistant.funcs import *
+# from assistant.assistant import *
 
 
 def save_user(user_id, user_nick, role = 'user'):
@@ -189,6 +189,12 @@ def clear_assistants(assistants, user_id):
             print(e)
 
 
+def get_distribution():
+    cursor.execute('SELECT user_id FROM users_for_yandex WHERE distribution = 1')
+    result = cursor.fetchall()
+    result = [i[0] for i in result]
+    return result
+
 
 def get_all():
     cursor.execute('SELECT * FROM users_for_yandex')
@@ -207,6 +213,5 @@ try:
         database=file_json_data['database']
     )
     cursor = connection.cursor()
-    # get_all()
 except pymysql.MySQLError as e:
     print(f"Ошибка подключения: {e}")
