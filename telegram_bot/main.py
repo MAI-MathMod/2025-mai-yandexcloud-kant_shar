@@ -49,7 +49,13 @@ def admin_registration(message):
 
 @bot.callback_query_handler(func=lambda call: call.data == 'queue_position')
 def handle_queue_position(call):
-    place = stay_in_quire(call.message.chat.id)
+    queue_button = types.InlineKeyboardMarkup()
+    queue_button.add(types.InlineKeyboardButton(text='Узнать место в очереди', callback_data='queue_position'))
+
+    chat_id = call.message.chat.id
+    message_id = call.message.message_id
+
+    place = stay_in_quire(chat_id)
     if place is True:  # Если очередь пуста или пользователь первый
         text = 'Вы следующий в очереди!'
     elif place:  # Если есть конкретная позиция
@@ -57,7 +63,12 @@ def handle_queue_position(call):
     else:  # Если пользователя нет в очереди
         text = 'Вы не в очереди.'
 
-    bot.answer_callback_query(call.id, text)
+    bot.edit_message_text(
+        chat_id=chat_id,
+        message_id=message_id,
+        text=text,
+        reply_markup=queue_button
+    )
 
 
 @bot.callback_query_handler(func=lambda call: call.data.startswith('confirm_'))
