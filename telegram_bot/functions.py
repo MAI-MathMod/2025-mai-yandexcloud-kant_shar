@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 import pymysql
-# from assistant.funcs import *
-# from assistant.assistant import *
+from assistant.funcs import *
+from assistant.assistant import *
 
 
 def save_user(user_id, user_nick, role = 'user'):
