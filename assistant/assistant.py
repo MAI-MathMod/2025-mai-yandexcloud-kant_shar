@@ -21,4 +21,6 @@ instruction="""Ты сотрудник приемной комиссии Мос�
 
 priem_agent = Agent(sdk=sdk, model=model, instruction=instruction, tools=[SearchProgramsList])
 print(priem_agent('Привет! Куда я могу поступить в МАИ?'))
-print(priem_agent('Я сдавал информатику, математику и русский, набрал 250 баллов. Выведи доступные мне факультеты в порядке убывания.'))
+print(priem_agent('Я сдавал информатику и математику'))
+print(priem_agent('А точно, я еще сдавал русский'))
+print(priem_agent('Я набрал 265 баллов, хотелось бы на бюджет. Можешь предоставить результат в порядке убывания?'))

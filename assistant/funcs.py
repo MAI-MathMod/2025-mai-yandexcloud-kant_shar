@@ -24,14 +24,18 @@ def upload_file(sdk, filename):
 
 
 class SearchProgramsList(BaseModel):
-    """Функция для опрелеоения возможных направлений в вузе на основе результатов экзаменов и предпочтений."""
+    """Функция для опрелеоения возможных направлений в вузе на основе результатов экзаменов и предпочтений.
+    Одно из полей score_budget или score_paid обязательно должно быть заполнено.
+    В поле exams обязательно должно быть 3 экзамена.
+    Если пользователь не дал информацию переспроси"""
 
     name: str = Field(description='Название конкурсной группы', default=None)
     code: str = Field(description='Код специальности (три числа, разделенные точками)', default=None)
-    score_budget: int = Field(description='Сумма баллов за экзамены, если пользователь хочет поступить на бюджет или не '
-                                          'упоминает, на какую форму обучения поступает (бюджет или платное)', default=None)
-    score_paid: int = Field(description='Сумма баллов за экзамены, если пользовательно хочет поступить на платное', default=None)
-    exams: str = Field(description='Сданные экзамены (Математика, информатика и т.п.)', default=None)
+    score_budget: int = Field(description='Сумма баллов за экзамены, если пользователь хочет поступить на бюджет.',
+                              default=None)
+    score_paid: int = Field(description='Сумма баллов за экзамены, если пользовательно хочет поступить на платное.',
+                            default=None)
+    exams: str = Field(description='Сданные экзамены (Математика, информатика и т.п.).', default=None)
     sort_order: str = Field(description='Порядок выдачи (least points, medium points, most points)', default=None)
 
     what_to_return: str = Field(description='Что вернуть (course-info или score)', default=None)
@@ -52,13 +56,9 @@ def sort_table(req, table=tb):
         x = x[x['Paid-points'] <= req.score_paid]
     if req.exams:
         exams = req.exams.split(', ')
-        expr = [1 for exam in exams if exam.lower() in str(x['Exams']).lower()].count(1)
-        if expr >= 3:
-            pass
-        else:
-            return ('К сожалению, вы не можете поступить. '
-                    'Для участия в конкурсе необходимы результаты как минимум трех экзаменов, '
-                    'либо не нашлось подходящего вам направления.')
+        res = check_exams(x, 'Exams', exams)
+        x['Contains_all_exams'] = res
+        x = x.sort_values(by='Contains_all_exams', ascending=False)
     if req.sort_order and len(x) > 0:
         if req.score_budget:
             if req.sort_order == 'least points':
@@ -141,3 +141,16 @@ class Agent:
             self.thread.delete()
         if delete_assistant:
             self.assistant.delete()
+
+
+def check_exams(df: pd.DataFrame, column_name: str, exams):
+    results = []
+
+    for cell in df[column_name]:
+        expr = [1 for exam in exams if exam in cell.lower()]
+        if len(expr) >= 3:
+            results.append(True)
+        else:
+            results.append(False)
+
+    return results
