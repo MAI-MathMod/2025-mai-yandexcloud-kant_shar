@@ -28,9 +28,8 @@ def get_last_year_programs(url='https://priem.mai.ru/base/programs/') -> tuple[s
     programs[-1]['name'] = needed_div.div.find('h3').text.strip()
     programs[-1]['code'] = needed_div.div.find('span', class_='program-codes mb-lg-0 mb-3').text.strip()
     points = needed_div.find('span', class_='program-points').span.text.strip().split('/')
-    programs[-1]['points'] = f'{points[0]}/{points[1]}'
-    places = needed_div.div.find_all('span')[7].span.text.strip().split('/')
-    programs[-1]['places'] = f"{places[0]}/{places[1].replace('\n', '').replace(' ', '')}"
+    programs[-1]['points-budget'] = points[0].replace('\xa0', '')
+    programs[-1]['points-paid'] = points[1].replace('\xa0', '')
     exams = needed_div.find_all('span')[3].text.strip().split(' ')
     programs[-1]['subjects'] = (f'{exams_converter[exams[0]]}, и {exams_converter[exams[2]]}, '
                                 f'и {exams_converter[exams[1].split('/')[0]]} или '
@@ -39,40 +38,40 @@ def get_last_year_programs(url='https://priem.mai.ru/base/programs/') -> tuple[s
     i = 0
     for sibling in needed_div.div.next_siblings:
         if i % 2 and i <= 62:
+            sec_dict = {}
             programs.append(dict())
             programs[-1]['name'] = sibling.find('h3').text.strip()
             code = sibling.find('span', class_='program-codes mb-lg-0 mb-3').text.strip()
+            points = sibling.find('span', class_='program-points').span.text.strip().split('/')
+            programs[-1]['points-budget'] = points[0].replace('\xa0', '')
+            programs[-1]['points-paid'] = points[1].replace('\xa0', '')
             if i in [29, 51]:
-                programs[-1]['code'] = (f'{code[:len(code) // 2]} '
-                                        f'({code[len(code) // 2:]})')
+                programs[-1]['code'] = code[:len(code) // 2]
+                sec_dict['code'] = code[len(code) // 2:]
+                sec_dict['name'] = programs[-1]['name']
+                sec_dict['points-budget'] = programs[-1]['points-budget']
+                sec_dict['points-paid'] = programs[-1]['points-paid']
+                exams = sibling.find_all('span')[3].text.strip().split(' ')
+                programs[-1]['subjects'] = (f'{exams_converter[exams[0]]}, и {exams_converter[exams[2]]}, '
+                                            f'и {exams_converter[exams[1].split('/')[0]]} или '
+                                            f'{exams_converter[exams[1].split('/')[1]]}')
+                sec_dict['subjects'] = programs[-1]['subjects']
+                programs.append(sec_dict)
             else:
                 programs[-1]['code'] = code
-            points = sibling.find('span', class_='program-points').span.text.strip().split('/')
-            programs[-1]['points'] = f'{points[0]}/{points[1]}'
-            if i in [35, 37, 41, 51, 57, 59]:
-                places = sibling.div.find_all('span')[8].span.text.strip().split('/')
-            else:
-                places = sibling.div.find_all('span')[7].span.text.strip().split('/')
-            if i in [29, 51]:
-                places_paid = places[1].replace('\n', '').replace(' ', '')
-                number = places_paid.split('\xa0')[-1]
-                programs[-1]['places'] = (f'{places[0]}/{places_paid[:places_paid.rindex(number)]} '
-                                          f'({places_paid[places_paid.rindex(number):]})')
-            else:
-                programs[-1]['places'] = f"{places[0]}/{places[1].replace('\n', '').replace(' ', '')}"
-            exams = sibling.find_all('span')[3].text.strip().split(' ')
-            programs[-1]['subjects'] = (f'{exams_converter[exams[0]]}, и {exams_converter[exams[2]]}, '
-                                        f'и {exams_converter[exams[1].split('/')[0]]} или '
-                                        f'{exams_converter[exams[1].split('/')[1]]}')
+                exams = sibling.find_all('span')[3].text.strip().split(' ')
+                programs[-1]['subjects'] = (f'{exams_converter[exams[0]]}, и {exams_converter[exams[2]]}, '
+                                            f'и {exams_converter[exams[1].split('/')[0]]} или '
+                                            f'{exams_converter[exams[1].split('/')[1]]}')
         i += 1
 
-    table_header = (f'|Код|Наименование конкурсной группы|Кол-во мест (бюджет / платное)|Баллы (бюджет / платное)|Необходимые редметы '
+    table_header = (f'|Код|Наименование конкурсной группы|Баллы на бюджет|Баллы на платное|Необходимые редметы'
                     f'для поступления|\n'
-                    f'|:-:|:----------------------------:|:--------------------------:|:--------------------:|:---------'
-                    f'-------------:|\n')
+                    f'|:-:|:----------------------------:|:-------------:|:--------------:|:------------------'
+                    f'--------------:|\n')
     table = ''
     for program in programs:
-        table = (f'{table}|{program["code"]}|{program["name"]}|{program["places"]}|{program['points']}|'
+        table = (f'{table}|{program["code"]}|{program["name"]}|{program["points-budget"]}|{program['points-paid']}|'
                  f'{program['subjects']}|\n')
 
     table = f'{table_header}{table}'
