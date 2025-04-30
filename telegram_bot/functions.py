@@ -1,34 +1,23 @@
 import json
 from pathlib import Path
-from assistant.funcs import *
-from assistant.assistant import *
+import pymysql
+# from assistant.funcs import *
+# from assistant.assistant import *
 
 
-def save_user(user_id: int, user_nick: int, role: str = 'user'):
-    file_path = '../telegram_bot_data/users.json'
-    file = Path(file_path)
-
-    data = {}
-    if file.exists():
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                if not isinstance(data, dict):
-                    data = {}
-        except (json.JSONDecodeError, IOError) as e:
-            print(f"Ошибка при чтении файла: {e}")
-            data = {}
-
-    data[user_id] = {
-        'user_nick': user_nick,
-        'role': role
-    }
+def save_user(user_id, user_nick, role = 'user'):
     try:
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=4)
-        return True
-    except IOError as e:
-        raise IOError(f"Ошибка при записи данных в файл '{file_path}': {e}")
+        user_query = """
+            INSERT INTO users_for_yandex(user_id, user_nick, role, ball, exams)
+            VALUES (%s, %s, %s, %s, %s)
+        """
+        cursor.execute(user_query, (user_id, user_nick, role, '0', '0'))
+        connection.commit()
+        return 'success'
+
+    except pymysql.MySQLError as e:
+        connection.rollback()
+        return f"Ошибка подключения: {e}"
 
 
 def update_user_role(user_id: int, new_role: str):
@@ -40,30 +29,14 @@ def update_user_role(user_id: int, new_role: str):
     Возвращает:
         bool: True, если роль была успешно изменена, иначе False
     """
-    file_path = '../telegram_bot_data/users.json'
-    file = Path(file_path)
-
-    # Загружаем существующие данные или создаем пустой словарь
-    data = {}
-    if file.exists():
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                if not isinstance(data, dict):
-                    data = {}
-        except (json.JSONDecodeError, IOError) as e:
-            return False
-
-    if str(user_id) in data:
-        data[str(user_id)]['role'] = new_role
-        try:
-            with open(file_path, 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=4)
-            return True
-        except IOError as e:
-            raise IOError(f"Ошибка при изменении данных в файл '{file_path}': {e}")
-    else:
-        return False
+    try:
+        query = "UPDATE users_for_yandex SET role = %s WHERE user_id = %s"
+        cursor.execute(query, (new_role, str(user_id)))
+        connection.commit()
+        return True
+    except pymysql.MySQLError as e:
+        connection.rollback()
+        raise f"Ошибка подключения: {e}"
 
 
 def get_all_admin_ids():
@@ -72,21 +45,10 @@ def get_all_admin_ids():
     Возвращает:
         list: список всех ID администраторов
     """
-    file_path = '../telegram_bot_data/users.json'
-    file = Path(file_path)
-
-    data = {}
-    if file.exists():
-        try:
-            with open(file_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                if not isinstance(data, dict):
-                    data = {}
-        except (json.JSONDecodeError, IOError) as e:
-            print(f"Ошибка при чтении файла: {e}")
-            return []
-    admin_ids = [user_id for user_id, user_data in data.items() if user_data.get('role') == 'admin']
-    return admin_ids
+    cursor.execute('SELECT user_id FROM users_for_yandex WHERE role = "admin"')
+    result = cursor.fetchall()
+    result = [i[0] for i in result]
+    return result
 
 
 def stay_in_quire(user_id):
@@ -225,3 +187,18 @@ def clear_assistants(assistants, user_id):
 
 def reset_user_handover(user_id):
     file_path = '../telegram_bot_data/callstack.json'
+
+
+with open('../telegram_bot_data/database_user.json') as file:
+    file_json_data = json.load(file)
+try:
+    connection = pymysql.connect(
+        host=file_json_data['host'],
+        user=file_json_data['user'],
+        password=file_json_data['password'],
+        database=file_json_data['database']
+    )
+    cursor = connection.cursor()
+    print(get_all_admin_ids())
+except pymysql.MySQLError as e:
+    print(f"Ошибка подключения: {e}")
