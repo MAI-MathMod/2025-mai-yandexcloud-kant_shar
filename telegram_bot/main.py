@@ -14,7 +14,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 config = Config(_env_file='../.env')
-ADMIN_IDS = [int(id) for id in config.admin_ids.split(",") if id]
 if not config.bot_token:
     logger.error("Не указан TELEGRAM_BOT_TOKEN в .env файле!")
     exit(1)
@@ -114,7 +113,7 @@ def message_reply(message):
 
     elif str(user_id) not in get_all_admin_ids():
         text = priem_agent(message.text)
-        bot.send_message(user_id, text)
+        ms = bot.send_message(user_id, text)
 
         if get_handover():
             admins = get_all_admin_ids()
@@ -122,18 +121,19 @@ def message_reply(message):
                 history = '\n'
                 for msg in list(priem_agent.get_thread())[::-1]:
                     history = f'{history}{msg.author.role}:** {msg.text}\n'
-                clear_assistants(assistants, user_id)
-                text = (f'С вами хотят связаться.'
-                        f'Вот история переписки ассистента и пользователя:```{history}```')
+                text_for_admin = (f'С вами хотят связаться.'
+                        f'Вот история переписки ассистента и пользователя:\n{history}')
                 markup = types.InlineKeyboardMarkup()
                 button_agree = types.InlineKeyboardButton(
                     '✅Подтвердить',
                     callback_data=f'confirm_{message.chat.id}'
                 )
                 markup.add(button_agree)
-                mes_id = bot.send_message(id, text, reply_markup=markup)
+                mes_id = bot.send_message(id, text_for_admin, reply_markup=markup)
                 calling_admin[id] = mes_id.message_id
 
+            clear_assistants(assistants, user_id)
+            
             place = stay_in_quire(user_id)
             if place and place is not True:
                 text = f'Вы уже в очереди на {place} месте.'
@@ -143,7 +143,7 @@ def message_reply(message):
                 button_text = 'Узнать положение в очереди'
                 button_agree = types.InlineKeyboardButton(button_text, callback_data='queue_position')
                 markup.add(button_agree)
-                bot.send_message(user_id, text, reply_markup=markup)
+                bot.edit_message_text(chat_id=user_id, message_id=ms.message_id, text=text, reply_markup=markup)
 
 
 bot.infinity_polling()

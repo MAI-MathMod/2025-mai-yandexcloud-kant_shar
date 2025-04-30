@@ -1,10 +1,5 @@
 from yandex_cloud_ml_sdk import YCloudML
 from config import Config
-from yandex_cloud_ml_sdk.search_indexes import (
-    StaticIndexChunkingStrategy,
-    HybridSearchIndexType,
-    ReciprocalRankFusionIndexCombinationStrategy,
-)
 
 
 config = Config(_env_file='../.env')
@@ -18,3 +13,4 @@ instruction="""Ты сотрудник приемной комиссии Мос�
 функцию HandOver Посмотри на всю имеющуюся в твоем распоряжении информацию
 и сделай самый понятный и достоверный ответ. Не упоминай, что что-то можно уточнить в приемной комиссии. 
 Если что-то непонятно - переспроси"""
+search_index = sdk.search_indexes.get(config.search_index_id)

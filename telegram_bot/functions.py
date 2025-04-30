@@ -195,7 +195,8 @@ def stop_dialog(user_id):
 def get_or_create_assistant(assistants: dict, user_id: int):
     if user_id in assistants:
         return assistants[user_id]
-    assistants[user_id] = Agent(sdk=sdk, model=model, instruction=instruction, tools=[SearchProgramsList, HandOver])
+    assistants[user_id] = Agent(sdk=sdk, model=model, instruction=instruction, search_index=search_index,
+                                tools=[SearchProgramsList, HandOver])
     return assistants[user_id]
 
 
