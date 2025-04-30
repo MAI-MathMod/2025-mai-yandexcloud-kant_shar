@@ -74,15 +74,15 @@ def handle_confirmation(call):
             finally:
                 calling_admin.pop(admin_id, None)
 
-    create_dialog(call.message.chat.id)
+    if create_dialog(call.message.chat.id):
+        text = '''Спасибо за вашу инициативность.
+        Перенаправляю на чат с пользователем.'''
+        bot.send_message(call.message.chat.id, text)
 
-        # Отправляем сообщение админу
-    text = '''Спасибо за вашу инициативность.
-    Перенаправляю на чат с пользователем.'''
-    bot.send_message(call.message.chat.id, text)
-
-        # Отправляем сообщение пользователю
-    bot.send_message(user_id, 'Администратор принял ваш запрос. Можете общаться.')
+        bot.send_message(user_id, 'Администратор принял ваш запрос. Можете общаться.')
+    else:
+        text = 'Извините, но вы уже ведете диалог с другим пользователем. Завершите текущий диалог, чтобы начать новый.'
+        bot.send_message(call.message.chat.id, text)
 
 
 @bot.message_handler(content_types='text')
@@ -91,10 +91,24 @@ def message_reply(message):
     user_id = message.chat.id
     priem_agent = get_or_create_assistant(assistants, user_id)
 
-    if get_handover():
+    if str(user_id) in get_all_admin_ids():
         if visavi:
             if message.text == 'Закончить беседу':
-                set_handover_false()
+                clear_assistants(assistants, user_id)
+                stop_dialog(user_id)
+                bot.send_message(user_id, 'Спасибо за беседу, контакт разорван.')
+                bot.send_message(visavi, 'Спасибо за беседу, контакт разорван.')
+            else:
+                markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+                button_stop = types.KeyboardButton("Закончить беседу")
+                markup.add(button_stop)
+                bot.send_message(visavi, message.text, reply_markup=markup)
+        else:
+            bot.send_message(user_id, "Вы не в диалоге с пользователем")
+    elif priem_agent.get_handover():
+        if visavi:
+            if message.text == 'Закончить беседу':
+                clear_assistants(assistants, user_id)
                 stop_dialog(user_id)
                 bot.send_message(user_id, 'Спасибо за беседу, контакт разорван.')
                 bot.send_message(visavi, 'Спасибо за беседу, контакт разорван.')
@@ -105,7 +119,6 @@ def message_reply(message):
                 bot.send_message(visavi, message.text, reply_markup=markup)
         else:
             admins = get_all_admin_ids()
-            print(admins)
             if len(admins) == 0:
                 markup = types.ReplyKeyboardRemove()
                 bot.send_message(user_id, 'Технические шоколадки, попробуйте позже',
@@ -115,7 +128,7 @@ def message_reply(message):
         text = priem_agent(message.text)
         ms = bot.send_message(user_id, text)
 
-        if get_handover():
+        if priem_agent.get_handover():
             admins = get_all_admin_ids()
             for id in admins:
                 history = '\n'
@@ -132,8 +145,6 @@ def message_reply(message):
                 mes_id = bot.send_message(id, text_for_admin, reply_markup=markup)
                 calling_admin[id] = mes_id.message_id
 
-            clear_assistants(assistants, user_id)
-            
             place = stay_in_quire(user_id)
             if place and place is not True:
                 text = f'Вы уже в очереди на {place} месте.'

@@ -4,8 +4,6 @@ import pandas as pd
 tb = pd.read_excel('../knowledge_base/MAI_Programs.xlsx')
 tb.columns = ['Code', 'Name', 'Budget-points', 'Paid-points', 'Exams', 'Faq', 'Courses']
 
-handover = False
-
 
 def create_thread(sdk):
     return sdk.threads.create(ttl_days=1, expiration_policy="static")
@@ -88,6 +86,7 @@ class Agent:
         self.sdk = sdk
         self.model = model
         self.thread = None
+        self.handover = False
 
         if assistant:
             self.assistant = assistant
@@ -112,6 +111,9 @@ class Agent:
             self.thread = create_thread(self.sdk)
         return self.thread
 
+    def get_handover(self):
+        return self.handover
+
     def __call__(self, message, thread=None):
         thread = self.get_thread(thread)
         thread.write(message)
@@ -124,6 +126,8 @@ class Agent:
                     f" + Вызываем функцию {f.function.name}, args={f.function.arguments}"
                 )
                 fn = self.tools[f.function.name]
+                if f.function.name == 'HandOver':
+                    self.handover = True
                 obj = fn(**f.function.arguments)
                 x = obj.process(thread)
                 result.append({"name": f.function.name, "content": x})
@@ -163,16 +167,5 @@ class HandOver(BaseModel):
 
     def process(self, thread):
 
-        global handover
-        handover = True
+
         return 'Подождите немного, оператор скоро придет и поможет вам решить вашу проблему!'
-
-
-def set_handover_false():
-    global handover
-    handover = False
-
-
-def get_handover():
-    global handover
-    return handover

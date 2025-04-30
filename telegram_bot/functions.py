@@ -129,7 +129,16 @@ def create_dialog(admins_id):
             print(f"Ошибка при чтении файла: {e}")
             data = {}
 
+    for dialog in data.get('dialogs', []):
+        if admins_id in dialog:
+            return False
+
+    if not data.get('queue'):
+        return False
+
     dialog = [data['queue'][0], admins_id]
+    if 'dialogs' not in data:
+        data['dialogs'] = []
     data['dialogs'].append(dialog)
     del data['queue'][0]
 
@@ -178,19 +187,24 @@ def stop_dialog(user_id):
             print(f"Ошибка при чтении файла: {e}")
             data = {}
 
-    index = 0
-    for num, i in enumerate(data['dialogs']):
-        if user_id in i:
-            index = num
-    del data['dialogs'][index]
+    if 'dialogs' not in data:
+        data['dialogs'] = []
 
-    try:
-        with open(file_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=4)
-        return True
-    except IOError as e:
-        raise IOError(f"Ошибка при записи данных в файл '{file_path}': {e}")
+    dialog_index = None
+    for i, dialog in enumerate(data['dialogs']):
+        if user_id in dialog:
+            dialog_index = i
+            break
 
+    if dialog_index is not None:
+        del data['dialogs'][dialog_index]
+        try:
+            with open(file_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=4)
+            return True
+        except IOError as e:
+            raise IOError(f"Ошибка при записи данных в файл '{file_path}': {e}")
+    return False
 
 def get_or_create_assistant(assistants: dict, user_id: int):
     if user_id in assistants:
@@ -207,3 +221,7 @@ def clear_assistants(assistants, user_id):
             del assistants[user_id]
         except Exception as e:
             print(e)
+
+
+def reset_user_handover(user_id):
+    file_path = '../telegram_bot_data/callstack.json'
