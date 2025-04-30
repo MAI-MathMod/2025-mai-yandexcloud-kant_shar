@@ -181,6 +181,7 @@ cython_debug/
 knowledge_base/programs_table.md
 telegram_bot_data/callstack.json
 telegram_bot_data/users.json
+telegram_bot_data/database_user.json
 knowledge_base/MAI_Programs.xlsx
 knowledge_base/data/chats/*.md
 knowledge_base/data/docs/*.md
