@@ -1,9 +1,11 @@
 import json
+import os
+import random
 from pathlib import Path
 
 
 def save_user(user_id: int, user_nick: int, role: str = 'user'):
-    file_path = 'users.json'
+    file_path = '../telegram_bot_data/users.json'
     file = Path(file_path)
 
     data = {}
@@ -38,7 +40,7 @@ def update_user_role(user_id: int, new_role: str):
     Возвращает:
         bool: True, если роль была успешно изменена, иначе False
     """
-    file_path = 'users.json'
+    file_path = '../telegram_bot_data/users.json'
     file = Path(file_path)
 
     # Загружаем существующие данные или создаем пустой словарь
@@ -70,7 +72,7 @@ def get_all_admin_ids():
     Возвращает:
         list: список всех ID администраторов
     """
-    file_path = 'users.json'
+    file_path = '../telegram_bot_data/users.json'
     file = Path(file_path)
 
     data = {}
@@ -88,7 +90,7 @@ def get_all_admin_ids():
 
 
 def stay_in_quire(user_id):
-    file_path = 'callstack.json'
+    file_path = '../telegram_bot_data/callstack.json'
     file = Path(file_path)
 
     data = {}
@@ -101,7 +103,8 @@ def stay_in_quire(user_id):
         except (json.JSONDecodeError, IOError) as e:
             print(f"Ошибка при чтении файла: {e}")
             data = {}
-
+    if any(user_id == i for i in data['queue']):
+        return data['queue'].index(user_id) + 1
     data['queue'].append(user_id)
     try:
         with open(file_path, 'w', encoding='utf-8') as f:
@@ -112,7 +115,7 @@ def stay_in_quire(user_id):
 
 
 def create_dialog(admins_id):
-    file_path = 'callstack.json'
+    file_path = '../telegram_bot_data/callstack.json'
     file = Path(file_path)
 
     data = {}
@@ -138,8 +141,8 @@ def create_dialog(admins_id):
         raise IOError(f"Ошибка при записи данных в файл '{file_path}': {e}")
 
 
-def get_vasavi(user_id):
-    file_path = 'callstack.json'
+def get_visavi(user_id):
+    file_path = '../telegram_bot_data/callstack.json'
     file = Path(file_path)
 
     data = {}
@@ -159,4 +162,44 @@ def get_vasavi(user_id):
             return dialog[0]
     return False
 
-# print(get_vasavi(1234))
+
+def get_random_music():
+    music_folder = '../telegram_bot_data/music'
+    if not os.path.exists(music_folder):
+        os.makedirs(music_folder)
+        return None
+
+    music_files = [f for f in os.listdir(music_folder) if f.endswith(('.mp3', '.ogg', '.wav'))]
+    if not music_files:
+        return None
+
+    return os.path.join(music_folder, random.choice(music_files))
+
+
+def stop_dialog(user_id):
+    file_path = '../telegram_bot_data/callstack.json'
+    file = Path(file_path)
+
+    data = {}
+    if file.exists():
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                if not isinstance(data, dict):
+                    data = {}
+        except (json.JSONDecodeError, IOError) as e:
+            print(f"Ошибка при чтении файла: {e}")
+            data = {}
+
+    index = 0
+    for num, i in enumerate(data['dialogs']):
+        if user_id in i:
+            index = num
+    del data['dialogs'][index]
+
+    try:
+        with open(file_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=4)
+        return True
+    except IOError as e:
+        raise IOError(f"Ошибка при записи данных в файл '{file_path}': {e}")
