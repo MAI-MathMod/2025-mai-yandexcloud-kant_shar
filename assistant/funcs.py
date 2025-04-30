@@ -1,9 +1,10 @@
 from pydantic import BaseModel, Field
-from typing import Optional
 import pandas as pd
 
 tb = pd.read_excel('../knowledge_base/MAI_Programs.xlsx')
 tb.columns = ['Code', 'Name', 'Budget-points', 'Paid-points', 'Exams', 'Faq', 'Courses']
+
+handover = False
 
 
 def create_thread(sdk):
@@ -26,8 +27,9 @@ def upload_file(sdk, filename):
 class SearchProgramsList(BaseModel):
     """Функция для опрелеоения возможных направлений в вузе на основе результатов экзаменов и предпочтений.
     Одно из полей score_budget или score_paid обязательно должно быть заполнено.
-    В поле exams обязательно должно быть 3 экзамена.
-    Если пользователь не дал информацию переспроси"""
+    В поле exams обязательно должно быть 3 экзамена. Любой экзамен по языку кроме Русского заменяй
+    на экзамен по Иностранному языку (Например, Китайский заменяй на Иностранный, с Английским,
+    немецким и тп - аналогично). Если пользователь не дал информацию переспроси"""
 
     name: str = Field(description='Название конкурсной группы', default=None)
     code: str = Field(description='Код специальности (три числа, разделенные точками)', default=None)
@@ -35,7 +37,7 @@ class SearchProgramsList(BaseModel):
                               default=None)
     score_paid: int = Field(description='Сумма баллов за экзамены, если пользовательно хочет поступить на платное.',
                             default=None)
-    exams: str = Field(description='Сданные экзамены (Математика, информатика и т.п.).', default=None)
+    exams: str = Field(description='Сданные экзамены (Математика, информатика и т.п., экзамен по родному языку - Русский).', default=None)
     sort_order: str = Field(description='Порядок выдачи (least points, medium points, most points)', default=None)
 
     what_to_return: str = Field(description='Что вернуть (course-info или score)', default=None)
@@ -58,7 +60,7 @@ def sort_table(req, table=tb):
         exams = req.exams.split(', ')
         res = check_exams(x, 'Exams', exams)
         x['Contains_all_exams'] = res
-        x = x.sort_values(by='Contains_all_exams', ascending=False)
+        x = x[x['Contains_all_exams'] == True]
     if req.sort_order and len(x) > 0:
         if req.score_budget:
             if req.sort_order == 'least points':
@@ -147,10 +149,30 @@ def check_exams(df: pd.DataFrame, column_name: str, exams):
     results = []
 
     for cell in df[column_name]:
-        expr = [1 for exam in exams if exam in cell.lower()]
+        expr = [1 for exam in exams if exam.lower() in cell.lower()]
         if len(expr) >= 3:
             results.append(True)
         else:
             results.append(False)
 
     return results
+
+
+class HandOver(BaseModel):
+    """Эта функция предназначена для перевода твеого диалога с пользователем на диалог с человеком-оператором"""
+
+    def process(self, thread):
+
+        global handover
+        handover = True
+        return 'Подождите немного, оператор скоро придет и поможет вам решить вашу проблему!'
+
+
+def set_handover_false():
+    global handover
+    handover = False
+
+
+def get_handover():
+    global handover
+    return handover

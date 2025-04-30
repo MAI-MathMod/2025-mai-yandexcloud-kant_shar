@@ -1,7 +1,7 @@
 import json
-import os
-import random
 from pathlib import Path
+from assistant.funcs import *
+from assistant.assistant import *
 
 
 def save_user(user_id: int, user_nick: int, role: str = 'user'):
@@ -163,19 +163,6 @@ def get_visavi(user_id):
     return False
 
 
-def get_random_music():
-    music_folder = '../telegram_bot_data/music'
-    if not os.path.exists(music_folder):
-        os.makedirs(music_folder)
-        return None
-
-    music_files = [f for f in os.listdir(music_folder) if f.endswith(('.mp3', '.ogg', '.wav'))]
-    if not music_files:
-        return None
-
-    return os.path.join(music_folder, random.choice(music_files))
-
-
 def stop_dialog(user_id):
     file_path = '../telegram_bot_data/callstack.json'
     file = Path(file_path)
@@ -203,3 +190,19 @@ def stop_dialog(user_id):
         return True
     except IOError as e:
         raise IOError(f"Ошибка при записи данных в файл '{file_path}': {e}")
+
+
+def get_or_create_assistant(assistants: dict, user_id: int):
+    if user_id in assistants:
+        return assistants[user_id]
+    assistants[user_id] = Agent(sdk=sdk, model=model, instruction=instruction, tools=[SearchProgramsList, HandOver])
+    return assistants[user_id]
+
+
+def clear_assistants(assistants, user_id):
+    if user_id in assistants:
+        try:
+            assistants[user_id].done()
+            del assistants[user_id]
+        except Exception as e:
+            print(e)
