@@ -182,6 +182,6 @@ knowledge_base/programs_table.md
 telegram_bot_data/callstack.json
 telegram_bot_data/users.json
 knowledge_base/MAI_Programs.xlsx
-knowledge_base/data/chats/*
-knowledge_base/data/docs/*
-knowledge_base/data/facts/*
+knowledge_base/data/chats/*.md
+knowledge_base/data/docs/*.md
+knowledge_base/data/facts/*.md
