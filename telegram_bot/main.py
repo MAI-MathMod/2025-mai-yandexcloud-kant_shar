@@ -139,8 +139,9 @@ def message_reply(message):
             if message.text == 'Закончить беседу':
                 clear_assistants(assistants, user_id)
                 stop_dialog(user_id)
-                bot.send_message(user_id, 'Спасибо за беседу, контакт разорван.')
-                bot.send_message(visavi, 'Спасибо за беседу, контакт разорван.')
+                markup = types.ReplyKeyboardRemove()
+                bot.send_message(user_id, 'Спасибо за беседу, контакт разорван.', reply_markup=markup)
+                bot.send_message(visavi, 'Спасибо за беседу, контакт разорван.', reply_markup=markup)
             else:
                 markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
                 button_stop = types.KeyboardButton("Закончить беседу")
