@@ -91,9 +91,14 @@ def admin_registration(message):
 def distribution(message):
     admins = get_all_admin_ids()
     if str(message.chat.id) in admins:
-        for i in get_distribution():
-            text = 'Bot send message'
-            bot.send_message(i, text)
+        for k, v in get_distribution().items():
+            priem_agent = get_or_create_assistant(assistants, k)
+            text = priem_agent(f'У меня {v["score"]} баллов, я сдавал {v["exams"]}, '
+                               f'хочу на {v["department"]}, куда я могу поступить?')
+            clear_assistants(assistants, k)
+            bot.send_message(k, text)
+    else:
+        bot.send_message(message.chat.id, "Данная команда доступна только администраторам.")
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'queue_position')

@@ -136,10 +136,11 @@ class Agent:
                         update_user(self.chat_id, 'exams', search_data.exams)
                     if search_data.score_budget is not None:
                         update_user(self.chat_id, 'score', search_data.score_budget)
-                        update_user(self.chat_id, 'department', 'budget')
+                        update_user(self.chat_id, 'department', 'бюджет')
                     if search_data.score_paid is not None:
                         update_user(self.chat_id, 'score', search_data.score_paid)
-                        update_user(self.chat_id, 'department', 'paid')
+                        update_user(self.chat_id, 'department', 'платное')
+                    update_user(self.chat_id, 'distribution', 1)
                 obj = fn(**f.function.arguments)
                 x = obj.process(thread)
                 result.append({"name": f.function.name, "content": x})
