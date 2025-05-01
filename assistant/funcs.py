@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 import pandas as pd
+from ..telegram_bot.functions import update_user
 
 tb = pd.read_excel('../knowledge_base/MAI_Programs.xlsx')
 tb.columns = ['Code', 'Name', 'Budget-points', 'Paid-points', 'Exams', 'Faq', 'Courses']
@@ -81,12 +82,13 @@ def sort_table(req, table=tb):
 
 
 class Agent:
-    def __init__(self, sdk, model, assistant=None, instruction=None, search_index=None, tools=None):
+    def __init__(self, sdk, model, assistant=None, instruction=None, search_index=None, tools=None, chat_id=None):
 
         self.sdk = sdk
         self.model = model
         self.thread = None
         self.handover = False
+        self.chat_id = chat_id
 
         if assistant:
             self.assistant = assistant
@@ -128,6 +130,16 @@ class Agent:
                 fn = self.tools[f.function.name]
                 if f.function.name == 'HandOver':
                     self.handover = True
+                if f.function.name == 'SearchProgramsList':
+                    search_data = fn(**f.function.arguments)
+                    if search_data.exams is not None:
+                        update_user(self.chat_id, 'exams', search_data.exams)
+                    if search_data.score_budget is not None:
+                        update_user(self.chat_id, 'score', search_data.score_budget)
+                        update_user(self.chat_id, 'department', 'budget')
+                    if search_data.score_paid is not None:
+                        update_user(self.chat_id, 'score', search_data.score_paid)
+                        update_user(self.chat_id, 'department', 'paid')
                 obj = fn(**f.function.arguments)
                 x = obj.process(thread)
                 result.append({"name": f.function.name, "content": x})

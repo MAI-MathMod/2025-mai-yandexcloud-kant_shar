@@ -8,7 +8,7 @@ from assistant.assistant import *
 def save_user(user_id, user_nick, role = 'user'):
     try:
         user_query = """
-            INSERT INTO users_for_yandex(user_id, user_nick, role, ball, exams, distribution)
+            INSERT INTO users_for_yandex(user_id, user_nick, role, score, department, exams, distribution)
             VALUES (%s, %s, %s, %s, %s)
         """
         cursor.execute(user_query, (user_id, user_nick, role, '0', '0', 0))
@@ -21,18 +21,10 @@ def save_user(user_id, user_nick, role = 'user'):
 
 
 def update_user(user_id, column, new_value):
-    """
-    Изменяет роль пользователя по его уникальному идентификатору.
-    Аргументы:
-        user_id: уникальный идентификатор пользователя
-        new_role: новая роль пользователя
-    Возвращает:
-        bool: True, если роль была успешно изменена, иначе False
-    """
     try:
         query = f"UPDATE users_for_yandex SET `{column}` = %s WHERE user_id = %s"
         valid_columns = ['user_id', 'user_nick', 'role',
-                         'ball', 'exams', 'distribution']
+                         'score', 'department', 'exams', 'distribution']
         if column not in valid_columns:
             return False
         cursor.execute(query, (new_value, user_id))
