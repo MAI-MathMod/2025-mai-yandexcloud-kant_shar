@@ -32,6 +32,8 @@ def start_message(message):
     btn_change_language = types.KeyboardButton('Change language')
     markup.add(btn_change_language)
     bot.send_message(message.chat.id, text_first, reply_markup=markup)
+    sticker_id = 'CAACAgIAAxkBAAICNWgTIyky78MuNmqEx1QAAaqonH7nFwACdm8AAutXmUgw_YYIBsfs6TYE'
+    bot.send_sticker(message.chat.id, sticker_id)
 
 
 @bot.message_handler(func=lambda message: message.text == 'Change language')
@@ -52,12 +54,12 @@ def process_language(message):
 @bot.message_handler(commands=['admin'])
 def admin_registration(message):
     if len(message.text.split(' ')) != 2:
-        text = 'Команда использованна неверно, отправьте ее заново (правильный вид - /admin "пароль").'
+        text = 'Команда использована неверно, отправьте ее заново (правильный вид - /admin "пароль").'
         markup = types.ReplyKeyboardRemove()
         bot.send_message(message.chat.id, text, reply_markup=markup)
     if message.text.split(' ')[1] == config.password:
         update_user(message.chat.id, 'role', 'admin')
-        text = 'Вы успешно зарегестрированы как админ.'
+        text = 'Вы успешно зарегистрированы как админ.'
         markup = types.ReplyKeyboardRemove()
         bot.send_message(message.chat.id, text, reply_markup=markup)
 
@@ -181,6 +183,8 @@ def message_reply(message):
                 button_agree = types.InlineKeyboardButton(button_text, callback_data='queue_position')
                 markup.add(button_agree)
                 bot.edit_message_text(chat_id=user_id, message_id=ms.message_id, text=text, reply_markup=markup)
+                sticker_id = 'CAACAgIAAxkBAAICOmgTI7jY8QjJENvmTaTgPyW3xtYzAAJTcwACEIOYSIIQbF12KpNtNgQ'
+                bot.send_sticker(message.chat.id, sticker_id)
 
 
 bot.infinity_polling()
