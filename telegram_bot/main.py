@@ -22,6 +22,12 @@ calling_admin = dict()
 assistants = dict()
 
 
+bot.set_my_commands([
+    types.BotCommand("start", "Начать работу с ботом"),
+    types.BotCommand("help", "Помощь и информация о боте")
+])
+
+
 @bot.message_handler(commands=['start'])
 def start_message(message):
     text_first = '''Привет! Я бот приемной комиссии МАИ. Задавай свои вопросы, я с радостью на них отвечу.
@@ -34,6 +40,15 @@ def start_message(message):
     bot.send_message(message.chat.id, text_first, reply_markup=markup)
     sticker_id = 'CAACAgIAAxkBAAICNWgTIyky78MuNmqEx1QAAaqonH7nFwACdm8AAutXmUgw_YYIBsfs6TYE'
     bot.send_sticker(message.chat.id, sticker_id)
+
+
+@bot.message_handler(commands=['help'])
+def help_message(message):
+    help_text = '''Доступные команды:
+/start - Начать диалог с ботом
+/help - Получить справку'''
+
+    bot.send_message(message.chat.id, help_text)
 
 
 @bot.message_handler(func=lambda message: message.text == 'Change language')
