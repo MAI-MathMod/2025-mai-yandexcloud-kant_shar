@@ -19,13 +19,16 @@ def update_user(user_id, column, new_value):
 
 def save_user(user_id, user_nick, role = 'user'):
     try:
-        user_query = """
-            INSERT INTO users_for_yandex(user_id, user_nick, role, score, department, exams, distribution)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """
-        cursor.execute(user_query, (user_id, user_nick, role, '0', '0', '0', 0))
-        connection.commit()
-        return 'success'
+        cursor.execute('SELECT * FROM users_for_yandex WHERE user_id = %s', (user_id, ))
+        users = cursor.fetchall()
+        if len(users) == 0:
+            user_query = """
+                INSERT INTO users_for_yandex(user_id, user_nick, role, score, department, exams, distribution)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """
+            cursor.execute(user_query, (user_id, user_nick, role, '0', '0', '0', 0))
+            connection.commit()
+        return True
 
     except pymysql.MySQLError as e:
         connection.rollback()
