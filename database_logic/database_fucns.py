@@ -49,7 +49,10 @@ def get_all_admin_ids():
 
 
 def get_distribution():
-    cursor.execute('SELECT * FROM users_for_yandex WHERE distribution = 1')
+    cursor.execute('''SELECT * FROM users_for_yandex 
+        WHERE distribution = 1 
+        AND role != 'admin'
+    ''')
     data = cursor.fetchall()
     result = dict()
     for i in data:
@@ -78,5 +81,6 @@ try:
         database=file_json_data['database']
     )
     cursor = connection.cursor()
+    print(get_distribution())
 except pymysql.MySQLError as e:
     print(f"Ошибка подключения: {e}")
