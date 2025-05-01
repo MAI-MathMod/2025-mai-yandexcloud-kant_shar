@@ -5,16 +5,20 @@
 from glob import glob
 from pathlib import Path
 from dotenv import load_dotenv
-from assistant import sdk
-import pandas as pd
 from yandex_cloud_ml_sdk.search_indexes import (
     StaticIndexChunkingStrategy,
     HybridSearchIndexType,
     ReciprocalRankFusionIndexCombinationStrategy,
 )
 import os
-from dotenv import set_key
 from yandex_cloud_ml_sdk import YCloudML
+from config import Config
+
+# Initialize SDK
+project_root = Path(__file__).parent.parent
+env_path = project_root / '.env'
+config = Config(_env_file=env_path)
+sdk = YCloudML(folder_id=config.folder_id, auth=config.api_key)
 
 # Инициализация SDK для токенизации
 model = sdk.models.completions("yandexgpt", model_version="rc")
@@ -51,6 +55,8 @@ def chunk_and_upload_file(filename):
         return chunk_and_upload_facts(content)
     elif "docs" in filename:
         return chunk_and_upload_docs(content)
+    elif "institutes" in filename:
+        return chunk_and_upload_institutes(content)
     else:
         return chunk_and_upload_chats(content)
 
@@ -59,38 +65,99 @@ def chunk_and_upload_facts(content):
     """Разбиение файла с фактами на чанки и загрузка в облако"""
     chunks = []
 
-    # Пропускаем заголовок
+    # Разбиваем содержимое на строки
     lines = content.split("\n")
-    if lines[0].startswith("#"):
-        lines = lines[1:]
 
-    # Пропускаем заголовок таблицы и разделитель
-    if lines[0].startswith("|"):
-        lines = lines[2:]
+    # Определяем тип файла по первой строке
+    if lines[0].startswith("# Факты о МАИ от студентов"):
+        # Обработка Facts.md (табличный формат)
+        # Пропускаем заголовок
+        if lines[0].startswith("#"):
+            lines = lines[1:]
 
-    # Обрабатываем каждую строку таблицы
-    for line in lines:
-        if not line.strip() or not line.startswith("|"):
-            continue
+        # Пропускаем заголовок таблицы и разделитель
+        if lines[0].startswith("|"):
+            lines = lines[2:]
 
-        # Разделяем строку на ячейки
-        cells = [cell.strip() for cell in line.split("|")[1:-1]]
-
-        # Создаем чанк для каждой непустой ячейки
-        for i, cell in enumerate(cells):
-            if not cell:
+        # Обрабатываем каждую строку таблицы
+        for line in lines:
+            if not line.strip() or not line.startswith("|"):
                 continue
 
-            # Определяем категорию по позиции
-            categories = ["Учебный процесс", "Инфраструктура", "Студенческая жизнь",
-                          "История и уникальность", "Международные возможности"]
-            category = categories[i] if i < len(categories) else "Другое"
+            # Разделяем строку на ячейки
+            cells = [cell.strip() for cell in line.split("|")[1:-1]]
 
-            # Форматируем факт
-            fact = f"""Категория: {category}
+            # Создаем чанк для каждой непустой ячейки
+            for i, cell in enumerate(cells):
+                if not cell:
+                    continue
+
+                # Определяем категорию по позиции
+                categories = ["Учебный процесс", "Инфраструктура", "Студенческая жизнь",
+                            "История и уникальность", "Международные возможности"]
+                category = categories[i] if i < len(categories) else "Другое"
+
+                # Форматируем факт
+                fact = f"""Категория: {category}
 Факт: {cell}"""
 
-            # Загружаем чанк
+                # Загружаем чанк
+                chunk_id = sdk.files.upload_bytes(
+                    fact.encode(),
+                    ttl_days=1,
+                    expiration_policy="static",
+                    mime_type="text/markdown"
+                )
+                chunks.append(chunk_id)
+    else:
+        # Обработка more_facts.md (markdown формат)
+        current_category = ""
+        current_facts = []
+
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+
+            # Определяем уровень заголовка
+            if line.startswith("### "):
+                # Сохраняем предыдущую категорию
+                if current_category and current_facts:
+                    fact = f"""Категория: {current_category}
+Факты:
+{chr(10).join(current_facts)}"""
+
+                    chunk_id = sdk.files.upload_bytes(
+                        fact.encode(),
+                        ttl_days=1,
+                        expiration_policy="static",
+                        mime_type="text/markdown"
+                    )
+                    chunks.append(chunk_id)
+
+                current_category = line[4:]  # Убираем "### "
+                current_facts = []
+
+            elif line.startswith("* "):
+                # Это факт
+                fact_text = line[2:]  # Убираем "* "
+                current_facts.append(fact_text)
+
+            elif line.startswith("  * "):
+                # Это подфакт
+                fact_text = line[4:]  # Убираем "  * "
+                if current_facts:
+                    # Добавляем к последнему факту
+                    current_facts[-1] += f"\n  - {fact_text}"
+                else:
+                    current_facts.append(f"- {fact_text}")
+
+        # Сохраняем последнюю категорию
+        if current_category and current_facts:
+            fact = f"""Категория: {current_category}
+Факты:
+{chr(10).join(current_facts)}"""
+
             chunk_id = sdk.files.upload_bytes(
                 fact.encode(),
                 ttl_days=1,
@@ -141,6 +208,108 @@ def chunk_and_upload_docs(content):
             )
             chunks.append(chunk_id)
 
+    return chunks
+
+
+def chunk_and_upload_institutes(content):
+    """Разбиение файла с описаниями институтов и программ на чанки и загрузка в облако"""
+    chunks = []
+    current_institute = ""
+    current_program = ""
+    current_description = []
+
+    lines = content.split("\n")
+
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+
+        if line.startswith("# "):
+            # Это название направления (из courses.md)
+            if current_institute and current_program:
+                # Сохраняем предыдущий чанк
+                description = "\n".join(current_description) if current_description else "Описание отсутствует"
+                fact = f"""Направление: {current_institute}
+Программа: {current_program}
+Описание: {description}"""
+
+                chunk_id = sdk.files.upload_bytes(
+                    fact.encode(),
+                    ttl_days=1,
+                    expiration_policy="static",
+                    mime_type="text/markdown"
+                )
+                chunks.append(chunk_id)
+
+            current_institute = line[2:]  # Убираем "# "
+            current_program = ""
+            current_description = []
+
+        elif line.startswith("## "):
+            # Это название программы (из courses.md)
+            if current_institute and current_program:
+                # Сохраняем предыдущий чанк
+                description = "\n".join(current_description) if current_description else "Описание отсутствует"
+                fact = f"""Направление: {current_institute}
+Программа: {current_program}
+Описание: {description}"""
+
+                chunk_id = sdk.files.upload_bytes(
+                    fact.encode(),
+                    ttl_days=1,
+                    expiration_policy="static",
+                    mime_type="text/markdown"
+                )
+                chunks.append(chunk_id)
+
+            current_program = line[3:]  # Убираем "## "
+            current_description = []
+
+        elif line.startswith("Институт №"):
+            # Это название института (из institutes.md)
+            if current_institute:
+                # Сохраняем предыдущий чанк
+                description = "\n".join(current_description) if current_description else "Описание отсутствует"
+                fact = f"""Институт: {current_institute}
+Описание: {description}"""
+
+                chunk_id = sdk.files.upload_bytes(
+                    fact.encode(),
+                    ttl_days=1,
+                    expiration_policy="static",
+                    mime_type="text/markdown"
+                )
+                chunks.append(chunk_id)
+
+            current_institute = line
+            current_program = ""
+            current_description = []
+
+        else:
+            # Это описание программы или института
+            current_description.append(line)
+
+    # Сохраняем последний чанк
+    if current_institute:
+        description = "\n".join(current_description) if current_description else "Описание отсутствует"
+        if current_program:
+            fact = f"""Направление: {current_institute}
+Программа: {current_program}
+Описание: {description}"""
+        else:
+            fact = f"""Институт: {current_institute}
+Описание: {description}"""
+
+        chunk_id = sdk.files.upload_bytes(
+            fact.encode(),
+            ttl_days=1,
+            expiration_policy="static",
+            mime_type="text/markdown"
+        )
+        chunks.append(chunk_id)
+
+    print(f"Total chunks created: {len(chunks)}")
     return chunks
 
 
@@ -242,49 +411,65 @@ def create_and_populate_search_index(chunks, index_name, batch_size=100):
 
 
 def get_files():
-    """Получение списка всех файлов для анализа"""
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-    data_dir = os.path.join(project_root, "data")
-
+    """Получение списка файлов для обработки"""
     files = []
-    # Добавляем файлы из директории chats
-    for fn in glob(os.path.join(data_dir, "chats", "*.md")):
-        if os.path.isfile(fn):
-            files.append(fn)
-    # Добавляем файлы из директории facts
-    for fn in glob(os.path.join(data_dir, "facts", "*.md")):
-        if os.path.isfile(fn):
-            files.append(fn)
-    # Добавляем файлы из директории docs
-    for fn in glob(os.path.join(data_dir, "docs", "*.md")):
-        if os.path.isfile(fn):
-            files.append(fn)
-    return sorted(files)
+
+    # Get the project root directory
+    project_root = Path(__file__).parent.parent
+
+    # Add files from all data directories
+    data_dirs = ['chats', 'facts', 'docs', 'institutes']
+    for dir_name in data_dirs:
+        dir_path = project_root / 'knowledge_base' /'data' / dir_name
+        if dir_path.exists():
+            files.extend(glob(str(dir_path / "*.md")))
+            files.extend(glob(str(dir_path / "*.txt")))
+            print(files)
+
+    print("\nСписок файлов для обработки:")
+    for file in files:
+        print(f"- {file}")
+    print()
+
+    return files
 
 
 def analyze_files():
-    """Анализ всех .md файлов в директориях data/chats и data/facts"""
-    # Получаем путь к корню проекта
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-    data_dir = os.path.join(project_root, "2025-mai-yandexcloud-kant_shar", "knowledge_base", "data")
+    """Анализ файлов и создание поискового индекса"""
+    files = get_files()
+    if not files:
+        print("Файлы не найдены. Проверьте пути к директориям в папке data/")
+        return
 
     print("\nАнализ соотношения токенов и символов:")
-    d = [
-        {
-            "File": fn,
-            "Tokens": get_token_count(fn),
-            "Chars": get_file_len(fn),
-            "Category": os.path.basename(os.path.dirname(fn)),
-        }
-        for fn in glob(os.path.join(data_dir, "*", "*.md"))
-        if os.path.isfile(fn)
-    ]
-    return pd.DataFrame(d)
+    for file in files:
+        get_token_count(file)
+    print()
+
+    # Загружаем все файлы в облако
+    chunks = []
+    for file in files:
+        print(f"Обработка файла {file}...")
+        file_chunks = chunk_and_upload_file(file)
+        chunks.extend(file_chunks)
+        print(f"Загружено {len(file_chunks)} чанков")
+
+    if not chunks:
+        print("Не удалось создать чанки из файлов")
+        return
+
+    # Создаём поисковый индекс
+    print(f"\nСоздание поискового индекса из {len(chunks)} чанков...")
+    index_id = create_and_populate_search_index(chunks, "mai_bot_index")
+
+    # Сохраняем ID индекса
+    save_search_index_id(index_id.id)
+    print(f"\nПоисковый индекс {index_id} успешно создан и сохранен")
 
 
 def save_search_index_id(index_id: str):
     """Сохранение ID индекса в конфигурации"""
-    env_path = Path(".env")
+    global env_path
 
     # Читаем существующий файл
     if env_path.exists():
@@ -324,33 +509,6 @@ def initialize_sdk():
 
 
 if __name__ == "__main__":
-    # Вывод списка файлов
-    print("\nСписок файлов для обработки:")
-    for file in get_files():
-        print(f"- {file}")
 
     # Анализ файлов
-    df = analyze_files()
-    if df.empty:
-        print("\nФайлы не найдены. Проверьте пути к директориям data/chats и data/facts.")
-    else:
-        print("\nРезультаты анализа файлов:")
-        print(df)
-        print(df.groupby("Category").agg({"Tokens": ("min", "mean", "max")}))
-
-        # Загрузка файлов в облако с чанкованием
-        print("\nЗагрузка файлов в облако с чанкованием...")
-        df["Uploaded"] = df["File"].apply(chunk_and_upload_file)
-        print("\nЗагруженные чанки:")
-        for _, row in df.iterrows():
-            print(f"- {row['File']} -> {len(row['Uploaded'])} чанков")
-        print("Файлы загружены!")
-
-        # Создание и заполнение индекса
-        all_chunks = df["Uploaded"].explode().tolist()
-        index = create_and_populate_search_index(all_chunks, f"index_1")
-
-        # Сохранение ID индекса в .env
-        env_file = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), ".env")
-        set_key(env_file, "SEARCH_INDEX_ID", index.id)
-        print("\nID индекса сохранён в .env")
+    analyze_files()

@@ -30,10 +30,9 @@ bot.set_my_commands([
 
 @bot.message_handler(commands=['start'])
 def start_message(message):
-    text_first = '''Привет! Я бот приемной комиссии МАИ. Задавай свои вопросы, я с радостью на них отвечу.
-Нажмите на кнопку снизу, чтобы установить язык (Press the button below to chose language). Можете не нажимать, если хотите оставить русский язык.'''
+    priem_agent = get_or_create_assistant(assistants, message.chat.id)
+    text_first = priem_agent(message.text)
     save_user(message.chat.id, user_nick=message.chat.username,role='user')
-    get_or_create_assistant(assistants, message.chat.id)
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
     btn_change_language = types.KeyboardButton('Change language')
     markup.add(btn_change_language)
