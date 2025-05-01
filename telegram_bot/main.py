@@ -87,6 +87,13 @@ def admin_registration(message):
         bot.send_message(message.chat.id, text, reply_markup=markup)
 
 
+@bot.message_handler(commands=['notice'])
+def distribution(message):
+    for i in get_distribution():
+        text = 'Bot send message'
+        bot.send_message(i, text)
+
+
 @bot.callback_query_handler(func=lambda call: call.data == 'queue_position')
 def handle_queue_position(call):
     queue_button = types.InlineKeyboardMarkup()

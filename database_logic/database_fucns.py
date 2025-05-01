@@ -81,6 +81,5 @@ try:
         database=file_json_data['database']
     )
     cursor = connection.cursor()
-    print(get_distribution())
 except pymysql.MySQLError as e:
     print(f"Ошибка подключения: {e}")
