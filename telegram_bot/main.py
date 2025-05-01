@@ -89,9 +89,11 @@ def admin_registration(message):
 
 @bot.message_handler(commands=['notice'])
 def distribution(message):
-    for i in get_distribution():
-        text = 'Bot send message'
-        bot.send_message(i, text)
+    admins = get_all_admin_ids()
+    if str(message.chat.id) in admins:
+        for i in get_distribution():
+            text = 'Bot send message'
+            bot.send_message(i, text)
 
 
 @bot.callback_query_handler(func=lambda call: call.data == 'queue_position')
