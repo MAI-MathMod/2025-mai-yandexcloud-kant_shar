@@ -49,9 +49,15 @@ def get_all_admin_ids():
 
 
 def get_distribution():
-    cursor.execute('SELECT user_id FROM users_for_yandex WHERE distribution = 1')
-    result = cursor.fetchall()
-    result = [i[0] for i in result]
+    cursor.execute('SELECT * FROM users_for_yandex WHERE distribution = 1')
+    data = cursor.fetchall()
+    result = dict()
+    for i in data:
+        result[i[1]] = {
+            'score': i[4],
+            'department': i[5],
+            'exams': i[6]
+        }
     return result
 
 
