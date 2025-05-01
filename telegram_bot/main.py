@@ -2,10 +2,9 @@ import telebot
 from telebot import types
 from config import Config
 import logging
-from functions import (save_user, update_user, get_all_admin_ids, stop_dialog,
-                       stay_in_quire, create_dialog, get_visavi)
+from functions import *
 from assistant.assistant import *
-from assistant.funcs import *
+from database_logic.database_fucns import *
 from telegram_bot.functions import get_or_create_assistant, clear_assistants
 
 logging.basicConfig(
@@ -25,13 +24,29 @@ assistants = dict()
 
 @bot.message_handler(commands=['start'])
 def start_message(message):
-    text_first = '''Привет! Я бот приемной комиссии МАИ.
-Задавай свои вопросы, я с радостью на них отвечу.'''
-
+    text_first = '''Привет! Я бот приемной комиссии МАИ. Задавай свои вопросы, я с радостью на них отвечу.
+Нажмите на кнопку снизу, чтобы установить язык (Press the button below to chose language). Можете не нажимать, если хотите оставить русский язык.'''
     save_user(message.chat.id, user_nick=message.chat.username,role='user')
     get_or_create_assistant(assistants, message.chat.id)
-    markup = types.ReplyKeyboardRemove()
+    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    btn_change_language = types.KeyboardButton('Change language')
+    markup.add(btn_change_language)
     bot.send_message(message.chat.id, text_first, reply_markup=markup)
+
+
+@bot.message_handler(func=lambda message: message.text == 'Change language')
+def change_language(message):
+    markup = types.ReplyKeyboardRemove()
+    bot.send_message(message.chat.id, "Please enter new language.", reply_markup=markup)
+    bot.register_next_step_handler(message, process_language)
+
+
+def process_language(message):
+    new_language = message.text
+    clear_assistants(assistants, message.chat.id)
+    get_or_create_assistant(assistants, message.chat.id, language=new_language)
+    bot.send_message(message.chat.id, f"You chose language: {new_language}. "
+                                      f"Now type message and assistant will use it.")
 
 
 @bot.message_handler(commands=['admin'])

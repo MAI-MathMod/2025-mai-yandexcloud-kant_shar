@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 import pandas as pd
-from ..telegram_bot.functions import update_user
+from database_logic.database_fucns import *
 
 tb = pd.read_excel('../knowledge_base/MAI_Programs.xlsx')
 tb.columns = ['Code', 'Name', 'Budget-points', 'Paid-points', 'Exams', 'Faq', 'Courses']
